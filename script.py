@@ -1,8 +1,15 @@
-import random
 import subprocess
 import sys
-import os
+import os 
+
+# for pattern finding and number modification
 import re
+import random
+
+# for filesysytem exploring
+from pathlib import Path 
+import shutil
+
 # ensure PyMuPDF is installed
 try:
     import fitz  # PyMuPDF is imported as 'fitz'
@@ -11,29 +18,76 @@ except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "PyMuPDF"])
     import fitz
 
+
 # initiate percentage
 percentage_changed = round(random.random(), 2)
+document_paths = ["Datalake-Code/N63394-16-D-0018 Award Synthesized 7.7.25 PF_Redacted v2_Redacted.pdf", "Datalake-Code/FAKE_PDF.pdf"]
 
-document_paths = ["Datalake-Code/N63394-16-D-0018 Award Synthesized 7.7.25 PF_Redacted v2_Redacted.pdf", "Datalake-Code/F01_21F0037_29_Executed Modification_Final_20250407_Synthesized 7.7.25 PF_Redacted v2_Redacted.pdf"]
+
+# Get all PDF files from a given root directory
+def find_all_pdfs(root_path):
+    root = Path(root_path)
+    return list(root.rglob("*.pdf"))
+
+# Clone directory structure and build destination path
+def get_redacted_output_path(original_path, input_root, output_root):
+    relative_path = Path(original_path).relative_to(input_root)
+    redacted_filename = f"REDACTED_{relative_path.name}"
+    return Path(output_root) / relative_path.parent / redacted_filename
+
+def create_output_dirs(output_path):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+def process_all_pdfs(input_root, output_root):
+    pdf_paths = find_all_pdfs(input_root)
+    print(f"Found {len(pdf_paths)} PDF(s) to process in {input_root}.\n")
+
+    for i, path in enumerate(pdf_paths, 1):
+        try:
+            doc = fitz.open(path)
+        except Exception as e:
+            print(f"Skipping {path} due to error: {e}")
+            continue
+        
+        redact_first_page(doc)
+        redact_contact_info(doc)
+        modify_values(doc)
+
+        output_path = get_redacted_output_path(path, input_root, output_root)
+        create_output_dirs(output_path)
+        doc.save(str(output_path))
+        doc.close()
+
+        print(f"Saved redacted PDF #{i} to: {output_path}\n")
     
-# apply percentage to a price
-def alter_price(number_string):
-    cleaned_price = re.sub(r'[^.0-9]', '', number_string)
-    if cleaned_price == '' or cleaned_price == '.':
-        return number_string
-    
-    # remove trailing period if price is at the end of a sentence
-    if cleaned_price[-1] == ".":
-        cleaned_price = cleaned_price[:-1]
-    price_float = float(cleaned_price)
-    
-    # apply percentage and return price to the original format
-    new_price_float = price_float - price_float * percentage_changed
-    new_price = "${:,.2f}".format(new_price_float)
-    
-    price_float = "${:,.2f}".format(price_float)
-    print(f"Modifying {price_float} to {new_price} (decreased by {int(percentage_changed * 100)}%)")
-    return new_price
+
+# apply percentage to a vlaue
+def alter_value(number_string):
+    if isinstance(number_string, str):
+        cleaned_price = re.sub(r'[^.0-9]', '', number_string)
+        if cleaned_price == '' or cleaned_price == '.':
+            return number_string
+        
+        # remove trailing period if price is at the end of a sentence
+        if cleaned_price[-1] == ".":
+            cleaned_price = cleaned_price[:-1]
+        price_float = float(cleaned_price)
+        
+        value_symbol = ''
+        if number_string[0] == '$':
+            value_symbol = '$'
+        elif number_string[0] == '+':
+            value_symbol = '+'
+        elif number_string[0] == '-':
+            value_symbol = '-'
+       
+        # apply percentage and return price to the original format
+        new_price_float = price_float - price_float * percentage_changed
+        new_price = f"{value_symbol}{new_price_float:,.2f}"
+        
+        price_float_str = f"{value_symbol}{price_float:,.2f}"
+        return new_price
+    return number_string
 
 
 # function that takes the top-left coordinate of a box and outputs the coordinates of the top-left and bottom-right corners
@@ -90,10 +144,11 @@ def redact_first_page(document):
     first_page.apply_redactions()
     
     
-# redact contact info on all pages of award file
+# redact contact info on all pages
 def redact_contact_info(document):
-    search_targets = ["ATTN:", "Telephone No.", "Email Address:"]
+    search_targets = ["ATTN", "Telephone No", "Email Address", "POC Name", "POC Email", "POC Telephone"]
     for page_num, page in enumerate(document):
+        pix = page.get_pixmap(dpi=300)
         for target in search_targets:
             text_instances = page.search_for(target)
             for inst in text_instances:
@@ -101,49 +156,57 @@ def redact_contact_info(document):
                 # get coordinates of found text
                 x0, y0, x1, y1 = inst
                 
-                # redact to the right
-                redaction_rect = fitz.Rect(x1, y0, x1 + 115, y1)
+                # redact to the right end of the page
+                redaction_rect = fitz.Rect(x1, y0, pix.width - 100, y1)
                 page.add_redact_annot(redaction_rect, fill=(1, 1, 1))
-                print(f"Redacting {target[:-1]} on page {page_num + 1}")
     
     # redact
     for page in document:
         page.apply_redactions()
-    print("Redaction complete.")
 
 
-# modify amounts found to the right of dollar signs
-def modify_prices(document):
+# modify amounts (avoid the patterns of numbers that we do not want to change)
+def modify_values(document):
+    
+    price_pattern = re.compile(r'^[+\-]?\$?\d{1,3}(?:,\d{3})*(?:\.\d{2})?$|^[+\-]?\$?\d+(?:\.\d{2})?$')
+    
+    range_pattern = re.compile(r'\d+\s*[-–—]\s*\d+')
+    page_pattern = re.compile(r'\b(pp?\.?|page)\s*\d+', re.IGNORECASE) # avoid "Page 5", etc.
+    standalone_int = re.compile(r'^\d{1,3}$')  # avoid lone numbers like 2, 10
+    four_digit_pattern = re.compile(r'^\d{4}$') # avoid years and addresses
+    leading_zero_pattern = re.compile(r'^0{2,}\d+(\.\d+)?$') # avoid "00001", "0034"
+
+    
     for page_num, page in enumerate(document):
-        text_instances = page.search_for("$")
-        for inst in text_instances:
-            # redact a rectangle to the right of the dollar sign and add new price
-            x0, y0, x1, y1 = inst[0], inst[1], inst[2] + 100, inst[3]
-            price = page.get_text("text", clip=(x0, y0, x1, y1)).strip()
-            new_price = alter_price(price)
-            page.add_redact_annot((x0, y0, x1, y1), fill=(1, 1, 1))
-            page.apply_redactions()
-            page.insert_text((x0, y1), new_price, fontsize=9, color=(0, 0, 0))
-    print(f"Modification complete.")
+        words = page.get_text("words")
+        for w in words:
+            x0, y0, x1, y1, word_text, *_ = w
+            raw_text = word_text.strip()
+
+            if not any(char.isdigit() for char in raw_text):
+                continue
+
+            if (
+            price_pattern.fullmatch(raw_text)
+            and not range_pattern.search(raw_text)
+            and not page_pattern.search(raw_text)
+            and not standalone_int.fullmatch(raw_text)
+            and not four_digit_pattern.fullmatch(raw_text)
+            and not leading_zero_pattern.fullmatch(raw_text)
+            ):
+                new_price = alter_value(raw_text)
+                rect = fitz.Rect(x0, y0, x1, y1)
+                insertion_point = (x0, y1 - 2)
+
+                page.add_redact_annot(rect, fill=(1, 1, 1))
+                page.apply_redactions()
+                page.insert_text(insertion_point, new_price, fontsize=8, color=(0, 0, 0))
 
 
-# execute script
 def main():
-    i=1
-    for path in document_paths:
-        doc = fitz.open(path)
-        print(f"REDACTING AND MODIFYING FILE #{i}...")
-        redact_first_page(doc)
-        redact_contact_info(doc)
-        modify_prices(doc)
-        # save the modified PDF with "REDACTED_" prefix
-        input_filename = os.path.basename(path)
-        output_filename = f"REDACTED_{input_filename}"
-        output_dir = os.path.dirname(path)
-        output_path = os.path.join(output_dir, output_filename)
-        doc.save(output_path)
-        doc.close()
-        print(f"Modified PDF saved to: {output_path}\n")
-        i+=1
+    input_root = Path.home() / "Downloads" / "MarkdownMindmaps" / "Datalake-Code"
+    output_root = Path("ClonedRedactedFS")
+    process_all_pdfs(input_root, output_root)
+
         
 main()
