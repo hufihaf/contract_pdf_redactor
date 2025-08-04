@@ -20,8 +20,9 @@ except ImportError:
 
 
 # initiate percentage
+# If you would like to select a specific percentage value, replace 'round(random.random(), 2))' with your percentage.
+# percentages should follow a decimal format. For example, if you want a 45% decrease, replace the text with "0.45"
 percentage_changed = round(random.random(), 2)
-document_paths = ["Datalake-Code/N63394-16-D-0018 Award Synthesized 7.7.25 PF_Redacted v2_Redacted.pdf", "Datalake-Code/FAKE_PDF.pdf"]
 
 
 # Get all PDF files from a given root directory
@@ -204,9 +205,7 @@ def modify_values(document):
 
 
 def main():
-    input_root = Path.home() / "Downloads" / "MarkdownMindmaps" / "Datalake-Code"
-    output_root = Path("ClonedRedactedFS")
+    input_root = Path.home() / "Awarded Contracts" / "FY16"
+    output_root = Path("ClonedRedactedFY")
     process_all_pdfs(input_root, output_root)
-
-        
-main()
+mai
