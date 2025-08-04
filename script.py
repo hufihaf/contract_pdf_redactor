@@ -208,4 +208,3 @@ def main():
     input_root = Path.home() / "Awarded Contracts" / "FY16"
     output_root = Path("ClonedRedactedFY")
     process_all_pdfs(input_root, output_root)
-mai
