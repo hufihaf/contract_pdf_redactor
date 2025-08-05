@@ -124,7 +124,7 @@ def generate_rect_coordiante(document, page_number, start_x, start_y):
 # redact confidential boxes of page one (document agnostic)
 def redact_first_page(document):
     first_page = document[0]
-    blocks_to_redact = ["7.", "8.", "15A.", "16.", "17A.", "18.", "19A.", "19B.", "20B.", "30A.", "30B.", "31A.", "31B."]
+    blocks_to_redact = ["7.", "8.", "9.", "15A.", "16.", "17A.", "18.", "19A.", "19B.", "20B.", "30A.", "30B.", "31A.", "31B."]
     rect_coordinates_to_redact = []
     for block in blocks_to_redact:
         instance = first_page.search_for(block)
