@@ -10,13 +10,7 @@ import random
 from pathlib import Path 
 import shutil
 
-# ensure PyMuPDF is installed
-try:
-    import fitz  # PyMuPDF is imported as 'fitz'
-except ImportError:
-    print("PyMuPDF not found. Installing...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "PyMuPDF"])
-    import fitz
+import fitz  # PyMuPDF is imported as 'fitz'
 
 
 # initiate percentage
@@ -84,7 +78,7 @@ def alter_value(number_string):
        
         # apply percentage and return price to the original format
         new_price_float = price_float - price_float * percentage_changed
-        new_price = f"{value_symbol}{new_price_float:,.2f}"
+        new_price = f"{value_symbol}{new_price_float:,}"
         
         price_float_str = f"{value_symbol}{price_float:,.2f}"
         return new_price
@@ -171,7 +165,9 @@ def modify_values(document):
     
     price_pattern = re.compile(r'^[+\-]?\$?\d{1,3}(?:,\d{3})*(?:\.\d{2})?$|^[+\-]?\$?\d+(?:\.\d{2})?$')
     
-    range_pattern = re.compile(r'\d+\s*[-–—]\s*\d+')
+    alphanumeric_inside_pattern = re.compile(r'\d+[A-Za-z]+\d+') # avoid "123BN123" and so on
+    letter_prefix_pattern = re.compile(r'^[A-Za-z]\d+') # avoid "N1234" and so on
+    range_pattern = re.compile(r'\d+\s*[-–—]\s*\d+') # avoid "4 - 7" and so on
     page_pattern = re.compile(r'\b(pp?\.?|page)\s*\d+', re.IGNORECASE) # avoid "Page 5", etc.
     standalone_int = re.compile(r'^\d{1,3}$')  # avoid lone numbers like 2, 10
     four_digit_pattern = re.compile(r'^\d{4}$') # avoid years and addresses
@@ -194,6 +190,8 @@ def modify_values(document):
             and not standalone_int.fullmatch(raw_text)
             and not four_digit_pattern.fullmatch(raw_text)
             and not leading_zero_pattern.fullmatch(raw_text)
+            and not alphanumeric_inside_pattern.fullmatch(raw_text)
+            and not letter_prefix_pattern.fullmatch(raw_text)
             ):
                 new_price = alter_value(raw_text)
                 rect = fitz.Rect(x0, y0, x1, y1)
@@ -205,7 +203,8 @@ def modify_values(document):
 
 
 def main():
-    input_root = Path.home() / "Awarded Contracts" / "FY16"
+    input_root = Path("C:/Users") / "" / "Downloads" / "Awards"
     output_root = Path("ClonedRedactedFY")
     process_all_pdfs(input_root, output_root)
+        
 main()
