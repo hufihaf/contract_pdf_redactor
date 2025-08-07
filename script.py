@@ -53,7 +53,7 @@ def process_all_pdfs(input_root, output_root):
         doc.save(str(output_path))
         doc.close()
 
-        print(f"Saved redacted PDF #{i} to: {output_path}\n")
+        print(f"Saved redacted PDF #{i} to: {output_path}")
     
 
 # apply percentage to a vlaue
@@ -126,7 +126,7 @@ def generate_rect_coordiante(document, page_number, start_x, start_y):
 # redact confidential boxes of page one (document agnostic)
 def redact_first_page(document):
     first_page = document[0]
-    blocks_to_redact = ["7.", "8.", "15A.", "16.", "17A.", "18.", "19A.", "19B.", "20B.", "30A.", "30B.", "31A.", "31B."]
+    blocks_to_redact = ["7.", "8.", "15A.", "15B.", "16.", "16B.", "17A.", "18.", "19A.", "19B.", "20B.", "30A.", "30B.", "31A.", "31B."]
     rect_coordinates_to_redact = []
     for block in blocks_to_redact:
         instance = first_page.search_for(block)
@@ -165,15 +165,16 @@ def redact_contact_info(document):
 # modify amounts (avoid the patterns of numbers that we do not want to change)
 def modify_values(document):
     
-    price_pattern = re.compile(r'^[+\-]?\$?\d{1,3}(?:,\d{3})*(?:\.\d{2})?$|^[+\-]?\$?\d+(?:\.\d{2})?$')
-    
-    alphanumeric_inside_pattern = re.compile(r'\d+[A-Za-z]+\d+') # avoid "123BN123" and so on
-    letter_prefix_pattern = re.compile(r'^[A-Za-z]\d+') # avoid "N1234" and so on
+    pattern = re.compile(r'^[+\-]?\$?\d{1,3}(?:,\d{3})*(?:\.\d{2})?\.?$|^[+\-]?\$?\d+(?:\.\d{2})?\.?$')
+
+    alphanumeric_inside_pattern = re.compile(r'(?=.*\d)(?=.*[A-Z])^(?!.*USD)[A-Z0-9]+$') # avoid numbers that have letters in them, like contract IDs
     range_pattern = re.compile(r'\d+\s*[-–—]\s*\d+') # avoid "4 - 7" and so on
     page_pattern = re.compile(r'\b(pp?\.?|page)\s*\d+', re.IGNORECASE) # avoid "Page 5", etc.
     standalone_int = re.compile(r'^\d{1,3}$')  # avoid lone numbers like 2, 10
-    four_digit_pattern = re.compile(r'^\d{4}$') # avoid years and addresses
-    leading_zero_pattern = re.compile(r'^0{2,}\d+(\.\d+)?$') # avoid "00001", "0034"
+    four_digit_pattern = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b') # avoid years (from 1900 to 2099)
+    leading_zero_pattern = re.compile(r'^0{2,}\d+(\.\d+)?$') # avoid "00001", "0034" (numbers padded with zeros are usually IDs)
+    six_digit_pattern = re.compile(r'^0*\d{6}$')  # avoid 6-digit values like dates or IDs
+
 
     
     for page_num, page in enumerate(document):
@@ -186,14 +187,14 @@ def modify_values(document):
                 continue
 
             if (
-            price_pattern.fullmatch(raw_text)
+            pattern.fullmatch(raw_text)
             and not range_pattern.search(raw_text)
             and not page_pattern.search(raw_text)
             and not standalone_int.fullmatch(raw_text)
             and not four_digit_pattern.fullmatch(raw_text)
             and not leading_zero_pattern.fullmatch(raw_text)
             and not alphanumeric_inside_pattern.fullmatch(raw_text)
-            and not letter_prefix_pattern.fullmatch(raw_text)
+            and not six_digit_pattern.fullmatch(raw_text)
             ):
                 new_price = alter_value(raw_text)
                 rect = fitz.Rect(x0, y0, x1, y1)
@@ -201,7 +202,7 @@ def modify_values(document):
 
                 page.add_redact_annot(rect, fill=(1, 1, 1))
                 page.apply_redactions()
-                page.insert_text(insertion_point, new_price, fontsize=8, color=(0, 0, 0))
+                page.insert_text(insertion_point, new_price, fontsize=10, color=(0, 0, 0))
 
 # initiate percentage_changed to 0.4 - user may modify
 percentage_changed = 0.4
@@ -223,7 +224,7 @@ def main():
         percentage_changed = 0.4
         
     # setup output directory and inititate script
-    output_root = Path("RedactedFile")
+    output_root = input_root.parent / "RedactedFile"
     process_all_pdfs(input_root, output_root)
         
 main()
