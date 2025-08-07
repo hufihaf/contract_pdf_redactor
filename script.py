@@ -19,13 +19,6 @@ except ImportError:
     import fitz
 
 
-# initiate percentage
-# If you would like to select a specific percentage value, replace 'round(random.uniform(0.10, 0.90), 2)' with your percentage.
-# percentages should follow a decimal format. For example, if you want a 45% decrease, replace the text with "0.45"
-percentage_changed = round(random.uniform(0.20, 0.90), 2)
-
-
-
 # Get all PDF files from a given root directory
 def find_all_pdfs(root_path):
     root = Path(root_path)
@@ -210,10 +203,27 @@ def modify_values(document):
                 page.apply_redactions()
                 page.insert_text(insertion_point, new_price, fontsize=8, color=(0, 0, 0))
 
-
+# initiate percentage_changed to 0.4 - user may modify
+percentage_changed = 0.4
 def main():
-    input_root = Path("C:/Users") / "peter.fernando" / "Downloads" / "FY18"
-    output_root = Path("ClonedRedactedFY")
+    
+    # get the path to the directory
+    input_root = ""
+    while not os.path.exists(input_root):
+        input_root = input("Enter the complete path to the directory you want to synthesize (For example, C:/Users/adam/Downloads/Data): ")
+        if not os.path.exists(input_root):
+            print("Directory does not exist. Please try again.")
+    input_root = Path(f"{input_root}")
+    
+    # get the percentage to be applied
+    percentage_changed = input("Enter a percentage in decimal format (For example, 0.4): ")
+    percentage_changed = float(percentage_changed)
+    if percentage_changed > 0.99 or percentage_changed < 0.1:
+        print("Invalid percentage. Defaulting to 0.4 (40%)")
+        percentage_changed = 0.4
+        
+    # setup output directory and inititate script
+    output_root = Path("RedactedFile")
     process_all_pdfs(input_root, output_root)
         
 main()
