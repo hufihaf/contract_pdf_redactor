@@ -20,9 +20,10 @@ except ImportError:
 
 
 # initiate percentage
-# If you would like to select a specific percentage value, replace 'round(random.random(), 2))' with your percentage.
+# If you would like to select a specific percentage value, replace 'round(random.uniform(0.10, 0.90), 2)' with your percentage.
 # percentages should follow a decimal format. For example, if you want a 45% decrease, replace the text with "0.45"
-percentage_changed = round(random.random(), 2)
+percentage_changed = round(random.uniform(0.10, 0.90), 2)
+
 
 
 # Get all PDF files from a given root directory
