@@ -211,7 +211,7 @@ def modify_values(document):
 
 
 def main():
-    input_root = Path("C:/Users") / "" / "Downloads" / "Awards"
+    input_root = Path("C:/Users") / "peter.fernando" / "Downloads" / "Awards"
     output_root = Path("ClonedRedactedFY")
     process_all_pdfs(input_root, output_root)
         
