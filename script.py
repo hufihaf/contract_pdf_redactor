@@ -174,7 +174,7 @@ def modify_values(document):
     four_digit_pattern = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b') # avoid years (from 1900 to 2099)
     leading_zero_pattern = re.compile(r'^0{2,}\d+(\.\d+)?$') # avoid "00001", "0034" (numbers padded with zeros are usually IDs)
     six_digit_pattern = re.compile(r'^0*\d{6}$')  # avoid 6-digit values like dates or IDs
-
+    no_comma_over_thousand = re.compile(r'^\$?[1-9]\d{3,}$')
 
     
     for page_num, page in enumerate(document):
@@ -195,6 +195,7 @@ def modify_values(document):
             and not leading_zero_pattern.fullmatch(raw_text)
             and not alphanumeric_inside_pattern.fullmatch(raw_text)
             and not six_digit_pattern.fullmatch(raw_text)
+            and not no_comma_over_thousand.fullmatch(raw_text)
             ):
                 new_price = alter_value(raw_text)
                 rect = fitz.Rect(x0, y0, x1, y1)
