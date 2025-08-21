@@ -203,7 +203,7 @@ def modify_values(document):
 
                 page.add_redact_annot(rect, fill=(1, 1, 1))
                 page.apply_redactions()
-                page.insert_text(insertion_point, new_price, fontsize=10, color=(0, 0, 0))
+                page.insert_text(insertion_point, new_price, fontsize8=8, color=(0, 0, 0))
 
 # initiate percentage_changed to 0.4 - user may modify
 percentage_changed = 0.4
