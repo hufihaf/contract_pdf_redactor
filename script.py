@@ -170,7 +170,7 @@ def modify_values(document):
     alphanumeric_inside_pattern = re.compile(r'(?=.*\d)(?=.*[A-Z])^(?!.*USD)[A-Z0-9]+$') # avoid numbers that have letters in them, like contract IDs
     range_pattern = re.compile(r'\d+\s*[-–—]\s*\d+') # avoid "4 - 7" and so on
     page_pattern = re.compile(r'\b(pp?\.?|page)\s*\d+', re.IGNORECASE) # avoid "Page 5", etc.
-    standalone_int = re.compile(r'^\d{1,3}$')  # avoid lone numbers like 2, 10
+    standalone_int = re.compile(r'^\d{1,3}$')  # avoid lone numbers like 2, 10 # this one kinda didn't work... worth reviewing if you run this script ever again, B. and S.
     four_digit_pattern = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b') # avoid years (from 1900 to 2099)
     leading_zero_pattern = re.compile(r'^0{2,}\d+(\.\d+)?$') # avoid "00001", "0034" (numbers padded with zeros are usually IDs)
     six_digit_pattern = re.compile(r'^0*\d{6}$')  # avoid 6-digit values like dates or IDs
