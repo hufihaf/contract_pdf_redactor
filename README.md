@@ -4,7 +4,7 @@ This script processes a folder of PDF files, redacts their sensitive fields, and
 
 ---
 
-## 📑 Table of Contents
+## Table of Contents
 
 1. [Overview](#overview)
 2. [Getting Started](#getting-started)
@@ -27,7 +27,7 @@ This script processes a folder of PDF files, redacts their sensitive fields, and
 
 ---
 
-## 🧾 Overview
+## Overview
 
 This script will:
 
@@ -40,13 +40,13 @@ All output PDFs will be saved to a new folder with `REDACTED_` prefixed in their
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
-### ✅ Install Requirements
+### Install Requirements
 
 Python will attempt to install the required `PyMuPDF` library if it's not found. You don't need to do anything unless you encounter errors.
 
-### 📂 Set File Paths (Line 236)
+### Set File Paths (Line 236)
 
 Modify line **236** in the `main()` function to point to the folder you want to process. For example:
 
@@ -64,7 +64,7 @@ The output will be saved to a folder named `ClonedRedactedFY` in the same locati
 
 ---
 
-### 🎯 Set Percentage Change (Line 23)
+### Set Percentage Change (Line 23)
 
 By default, the script randomly selects a percentage. You can change line **23**:
 
@@ -80,7 +80,7 @@ percentage_changed = 0.45
 
 ---
 
-## ⚙️ How It Works
+## How It Works
 
 The script performs the following steps:
 
@@ -91,7 +91,7 @@ The script performs the following steps:
 
 ---
 
-## 🧠 How it Works, Function by Function
+## How it Works, Function by Function
 
 ### `find_all_pdfs`
 
@@ -193,7 +193,7 @@ def main():
 
 ---
 
-## 📝 Notes
+## Notes
 
 - Certain numbers are **excluded**: page numbers, years (4-digit), short integers (like "12"), and zero-padded IDs.
 - Redactions are **visible**—they replace content with white or black boxes.
